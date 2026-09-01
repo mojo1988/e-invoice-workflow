@@ -5,11 +5,14 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
+    ports:
+      - "3000:3000"
     networks:
       - invoice-net
 
   watcher:
-    image: moj008/e-invoice-watcher:latest
+    build:
+      context: ./watcher
     container_name: e-invoice-watcher
     restart: unless-stopped
     depends_on:
@@ -23,24 +26,13 @@ services:
       MAPPING_DIR: "/data/mapping"
       WORK_DIR: "/data/work"
       LOG_DIR: "/data/logs"
-      LOGO_PATH: "/data/assets/hsp-logo.png"
-      LOGO_HEIGHT_CM: "2.5"
-      LOGO_TOP_CM: "0.0"
-      LOGO_MARGIN_CM: "1.0"
       FORMAT: "Factur-X-EN16931"
       SHEET_NAME: "Tabelle1"
       POLL_SECONDS: "10"
       STABLE_SECONDS: "10"
       REQUEST_TIMEOUT: "180"
     volumes:
-      - ./data/input:/data/input
-      - ./data/output:/data/output
-      - ./data/archive:/data/archive
-      - ./data/error:/data/error
-      - ./data/mapping:/data/mapping:ro
-      - ./data/assets:/data/assets:ro
-      - ./data/work:/data/work
-      - ./data/logs:/data/logs
+      - /docker/volumes/e-invoice-workflow/data:/data
     networks:
       - invoice-net
 
