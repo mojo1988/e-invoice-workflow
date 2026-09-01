@@ -1,0 +1,49 @@
+services:
+  e-invoice-eu:
+    image: gflohr/e-invoice-eu:latest
+    container_name: e-invoice-eu
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+    networks:
+      - invoice-net
+
+  watcher:
+    image: moj008/e-invoice-watcher:latest
+    container_name: e-invoice-watcher
+    restart: unless-stopped
+    depends_on:
+      - e-invoice-eu
+    environment:
+      API_URL: "http://e-invoice-eu:3000"
+      INPUT_DIR: "/data/input"
+      OUTPUT_DIR: "/data/output"
+      ARCHIVE_DIR: "/data/archive"
+      ERROR_DIR: "/data/error"
+      MAPPING_DIR: "/data/mapping"
+      WORK_DIR: "/data/work"
+      LOG_DIR: "/data/logs"
+      LOGO_PATH: "/data/assets/hsp-logo.png"
+      LOGO_HEIGHT_CM: "2.5"
+      LOGO_TOP_CM: "0.0"
+      LOGO_MARGIN_CM: "1.0"
+      FORMAT: "Factur-X-EN16931"
+      SHEET_NAME: "Tabelle1"
+      POLL_SECONDS: "10"
+      STABLE_SECONDS: "10"
+      REQUEST_TIMEOUT: "180"
+    volumes:
+      - ./data/input:/data/input
+      - ./data/output:/data/output
+      - ./data/archive:/data/archive
+      - ./data/error:/data/error
+      - ./data/mapping:/data/mapping:ro
+      - ./data/assets:/data/assets:ro
+      - ./data/work:/data/work
+      - ./data/logs:/data/logs
+    networks:
+      - invoice-net
+
+networks:
+  invoice-net:
+    name: invoice-net

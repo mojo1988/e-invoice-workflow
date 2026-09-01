@@ -1,0 +1,13 @@
+data/input/
+data/output/
+data/archive/
+data/error/
+data/work/
+data/logs/
+data/assets/
+data/mapping/stammdaten.yaml
+*.pdf
+*.xlsx
+*.xlsm
+*.log
+.env

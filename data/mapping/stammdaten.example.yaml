@@ -1,0 +1,18 @@
+seller:
+  name: "Beispiel GmbH"
+  street: "Musterstraße 1"
+  postalCode: "90402"
+  city: "Nürnberg"
+  countryCode: "DE"
+  vatId: "DE000000000"
+  email: "rechnung@example.invalid"
+  contactName: "Max Mustermann"
+  phone: "+49 911 000000"
+
+payment:
+  accountName: "Beispiel GmbH"
+  iban: "DE00000000000000000000"
+  bic: "XXXXXXXXXXX"
+
+invoiceDefaults:
+  currency: "EUR"
