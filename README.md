@@ -2,119 +2,127 @@
 
 Automatischer Workflow zur Erstellung von ZUGFeRD-Rechnungen aus Excel-Rechnungsvorlagen. Der Watcher überwacht einen Eingangsordner, verarbeitet neue Rechnungen über den Dienst `e-invoice-eu`, archiviert die Excel-Quelldatei und legt die fertige PDF im Ausgabeordner ab.
 
-## Installation auf einer Synology NAS
+## Verbindliche Vorlage
 
-Diese Anleitung verwendet Synology Container Manager und Docker Compose. Der Watcher wird als Multi-Architektur-Image bereitgestellt und kann auf unterstützten Intel/AMD- (`amd64`) sowie 64-Bit-ARM-Systemen (`arm64`) verwendet werden.
+Der Watcher unterstützt ausschließlich Kopien der verbindlichen Excel-Mastervorlage `vorlage.xlsx`. Eine beliebige Excel-Datei funktioniert nicht: Die Zellzuordnung ist im Watcher fest implementiert.
 
-### Voraussetzungen
+Die Mastervorlage wird lokal auf der NAS unter `data/mapping/vorlage.xlsx` abgelegt. Für jede Rechnung wird diese Datei kopiert, mit einem eigenen Namen gespeichert und die Kopie in `data/input` gelegt, beispielsweise `Rechnung-2026-001.xlsx`.
 
-- Synology DSM mit installiertem **Container Manager**
-- Ein Benutzerkonto mit Schreibrechten auf die verwendete Freigabe
-- Die persönlichen Rechnungsdateien: `stammdaten.yaml`, `rechnungsvorlage.xlsx` und das Firmenlogo
+**Nicht verändern:** Tabellenblatt `Tabelle1`, Zellpositionen, Spalten, Zeilen, Formeln und Formatierung der Vorlage müssen unverändert bleiben.
 
-### Ordner anlegen
+### Festes Mapping
 
-Lege in File Station – beispielhaft in der Freigabe `docker` auf Volume 1 – diese Struktur an:
+| Inhalt | Excel-Zelle/Bereich |
+|---|---|
+| Tabellenblatt | `Tabelle1` |
+| Käuferfirma | `A7` |
+| Käuferstraße | `A9` |
+| Käufer-PLZ und Ort | `A10`, z. B. `D-90552 Röthenbach` |
+| Rechnungsnummer | `H8` |
+| Lieferscheinnummer | `H9` |
+| Rechnungsdatum | `H11` |
+| Auftragsnummer | `A18` |
+| Leistungszeitraum Beginn | `E16` |
+| Leistungszeitraum Ende | `E18` |
+| Positionen | Zeilen `23–31` |
+| Positionsnummer | Spalte `A` |
+| Menge | Spalte `B` |
+| Einheit | Spalte `C` |
+| Bezeichnung | Spalte `D` |
+| Preis pro Einheit | Spalte `G` |
+| Positionswert | Spalte `H` |
+| Umsatzsteuersatz | `C34` |
+| Zahlungsbedingungen | `B38:D38` |
+
+Verkäufer-, Bank- und Standarddaten stehen in `data/mapping/stammdaten.yaml`. Das Firmenlogo muss als `data/assets/logo.png` vorliegen.
+
+## Installation auf Synology
+
+Voraussetzung ist Synology Container Manager. Die Compose-Datei bindet den NAS-Ordner `/volume1/docker/e-invoice-workflow/data` im Container nach `/data` ein. Lege auf der NAS daher exakt diese Ordner an:
 
 ```text
-/docker/e-invoice-workflow/
-├── inbox/
+/volume1/docker/e-invoice-workflow/data/
+├── input/
 ├── archive/
 ├── output/
+├── error/
 ├── mapping/
 ├── assets/
+├── work/
 └── logs/
 ```
 
-Die zugrunde liegenden Container-Pfade lauten bei diesem Beispiel:
+Lege anschließend die installationsspezifischen Dateien unter diesen Pfaden ab:
 
 ```text
-/volume1/docker/e-invoice-workflow/
+/volume1/docker/e-invoice-workflow/data/mapping/vorlage.xlsx
+/volume1/docker/e-invoice-workflow/data/mapping/stammdaten.yaml
+/volume1/docker/e-invoice-workflow/data/assets/logo.png
 ```
 
-Passe `/volume1/docker` in der Compose-Datei an, wenn deine Freigabe oder dein Volume anders heißt.
+`vorlage.xlsx`, `stammdaten.yaml` und `logo.png` gehören nicht in ein öffentliches Repository, wenn sie Firmen-, Kunden-, Kontakt- oder Bankdaten enthalten. Sie müssen vor dem ersten Start lokal auf der NAS angelegt oder kopiert werden.
 
-### Persönliche Dateien ablegen
+## Compose-YAML
 
-Diese Dateien gehören nicht in GitHub und müssen lokal auf der NAS abgelegt werden:
-
-```text
-stammdaten.yaml
-  → /volume1/docker/e-invoice-workflow/mapping/stammdaten.yaml
-
-rechnungsvorlage.xlsx
-  → /volume1/docker/e-invoice-workflow/mapping/rechnungsvorlage.xlsx
-
-<firmenlogo>.png oder <firmenlogo>.jpg
-  → /volume1/docker/e-invoice-workflow/assets/
-```
-
-Die Ordner `mapping` und `assets` werden im Container schreibgeschützt eingebunden, damit Stammdaten, Vorlage und Logo nicht durch den Container verändert werden können.
-
-### Compose-YAML
-
-Öffne **Container Manager → Projekt → Erstellen** und wähle die Erstellung über eine Compose-/YAML-Datei. Verwende diese Konfiguration:
+Die Datei `compose.yaml` im Repository ist direkt für Synology Container Manager nutzbar: Sie verwendet ausschließlich veröffentlichte Images und enthält keinen `build:`-Abschnitt. Es wird auf der NAS weder ein Git-Clone noch ein lokaler Docker-Build benötigt.
 
 ```yaml
 services:
   e-invoice-eu:
-    image: ghcr.io/itplr/e-invoice-eu:latest
+    image: gflohr/e-invoice-eu:latest
     container_name: e-invoice-eu
     restart: unless-stopped
+    environment:
+      NODE_ENV: production
 
-  e-invoice-watcher:
+  watcher:
     image: moj008/e-invoice-watcher:latest
     container_name: e-invoice-watcher
     restart: unless-stopped
-
     depends_on:
       - e-invoice-eu
-
     environment:
-      TZ: Europe/Berlin
-      PYTHONUNBUFFERED: "1"
-      E_INVOICE_API_URL: http://e-invoice-eu:8080
-
+      API_URL: http://e-invoice-eu:3000
+      INPUT_DIR: /data/input
+      OUTPUT_DIR: /data/output
+      ARCHIVE_DIR: /data/archive
+      ERROR_DIR: /data/error
+      MAPPING_DIR: /data/mapping
+      WORK_DIR: /data/work
+      LOG_DIR: /data/logs
+      LOGO_PATH: /data/assets/logo.png
+      FORMAT: Factur-X-EN16931
+      SHEET_NAME: Tabelle1
+      POLL_SECONDS: "10"
+      STABLE_SECONDS: "10"
+      REQUEST_TIMEOUT: "180"
     volumes:
-      - /volume1/docker/e-invoice-workflow/inbox:/app/inbox
-      - /volume1/docker/e-invoice-workflow/archive:/app/archive
-      - /volume1/docker/e-invoice-workflow/output:/app/output
-      - /volume1/docker/e-invoice-workflow/mapping:/app/mapping:ro
-      - /volume1/docker/e-invoice-workflow/assets:/app/assets:ro
-      - /volume1/docker/e-invoice-workflow/logs:/app/logs
+      - /volume1/docker/e-invoice-workflow/data:/data
 ```
 
 Die Compose-Datei startet zwei Container:
 
 | Container | Aufgabe |
 |---|---|
-| `e-invoice-eu` | Stellt die API für die technische Erstellung der E-Rechnung bereit. |
-| `e-invoice-watcher` | Überwacht den Eingangsordner und steuert Verarbeitung, Archivierung und Ausgabe. |
+| `e-invoice-eu` | API-Dienst für die technische Erstellung der E-Rechnung. |
+| `e-invoice-watcher` | Überwacht `input` und steuert Verarbeitung, Archivierung und Ausgabe. |
 
-Der Watcher erreicht die API innerhalb des Compose-Netzwerks über `http://e-invoice-eu:8080`. Deshalb ist keine Portfreigabe auf der NAS erforderlich.
+Die Dienste kommunizieren intern über `http://e-invoice-eu:3000`; eine externe Portfreigabe ist nicht erforderlich.
 
-### Projekt starten
+## Betrieb
 
-1. Vergib in Container Manager einen Projektnamen, beispielsweise `e-invoice-workflow`.
-2. Wähle einen Projektordner oder füge die YAML-Datei direkt ein.
-3. Prüfe, dass die Pfade unter `volumes` zu deiner Synology passen.
-4. Klicke auf **Erstellen** bzw. **Starten**.
-5. Warte, bis beide Container den Status **Running** anzeigen.
+1. In Container Manager ein Projekt anlegen und die `compose.yaml` aus diesem Repository importieren oder ihren Inhalt einfügen.
+2. Prüfen, dass `/volume1/docker/e-invoice-workflow/data` vorhanden ist und alle Unterordner enthält.
+3. Vor dem Start `vorlage.xlsx`, `stammdaten.yaml` und `logo.png` an den oben genannten NAS-Pfaden ablegen.
+4. Das Projekt starten und warten, bis `e-invoice-eu` sowie `e-invoice-watcher` den Status `Running` haben.
+5. Eine ausgefüllte Kopie von `vorlage.xlsx` nach `data/input` legen.
+6. Die fertige PDF erscheint direkt unter `data/output`.
+7. Erfolgreich verarbeitete Excel-Dateien werden nach `data/archive/JJJJ` verschoben. Fehlerhafte Dateien und Details landen in `data/error`.
 
-Container Manager lädt beim ersten Start die Images herunter. Beim Watcher wird automatisch die zur NAS-CPU passende `amd64`- oder `arm64`-Image-Variante verwendet.
+## Aktualisieren
 
-### Funktion testen
-
-1. Lege eine ausgefüllte Excel-Rechnung in `inbox` ab.
-2. Prüfe anschließend:
-   - Die Quelldatei wurde nach `archive` verschoben.
-   - Eine ZUGFeRD-PDF liegt direkt im Ordner `output`.
-   - Bei Problemen enthalten die Dateien unter `logs` sowie die Container-Protokolle in Container Manager Hinweise.
-
-### Aktualisieren
-
-Um eine neue Watcher-Version zu beziehen, halte das Projekt in Container Manager an, ziehe das aktuelle Image `moj008/e-invoice-watcher:latest` und starte das Projekt erneut. Alternativ kann das Projekt erneut bereitgestellt werden; vorhandene Daten in den eingebundenen NAS-Ordnern bleiben erhalten.
+Für eine neue Watcher-Version das aktuelle Image `moj008/e-invoice-watcher:latest` in Container Manager herunterladen und das Projekt neu erstellen oder neu starten. Die eingebundenen Datenordner bleiben dabei erhalten.
 
 ## Entwicklung
 
-Der Watcher-Code liegt unter `watcher/`. Die GitHub-Actions-Datei `.github/workflows/docker-publish.yml` baut bei Änderungen auf `main` ein Multi-Architektur-Image und veröffentlicht es auf Docker Hub.
+Der Python-Watcher liegt unter `watcher/watcher.py`. GitHub Actions baut auf `main` ein Multi-Architektur-Image für `linux/amd64` und `linux/arm64` und veröffentlicht es auf Docker Hub.
