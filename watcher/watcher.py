@@ -259,7 +259,7 @@ def read_and_normalize(source_path):
     invoice_id = text(ws_values["H9"].value)
     issue_date = date_iso(ws_values["H12"].value)
     buyer_name = text(ws_values["A8"].value)
-    buyer_street = text(ws_values["A9"].value)
+    buyer_street = text(ws_values["A10"].value)
     buyer_postal, buyer_city = parse_plz_ort(ws_values["A11"].value)
 
     if not invoice_id:
@@ -269,7 +269,7 @@ def read_and_normalize(source_path):
     if not buyer_name:
         raise ValueError("Käuferfirma in A8 fehlt.")
     if not buyer_street:
-        raise ValueError("Käuferstraße in A9 fehlt.")
+        raise ValueError("Käuferstraße in A10 fehlt.")
 
     order_id = optional(ws_values["A19"].value)
     delivery_note = optional(ws_values["H10"].value)
