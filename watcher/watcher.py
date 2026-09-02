@@ -273,7 +273,7 @@ def read_and_normalize(source_path):
 
     order_id = optional(ws_values["A19"].value)
     delivery_note = optional(ws_values["H10"].value)
-    period_start = date_iso(ws_values["E16"].value) if ws_values["E16"].value else None
+    period_start = date_iso(ws_values["E17"].value) if ws_values["E17"].value else None
     period_end = date_iso(ws_values["E19"].value) if ws_values["E19"].value else None
     payment_terms = " ".join(
         item
