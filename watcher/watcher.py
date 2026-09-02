@@ -26,13 +26,14 @@ ERROR_DIR = Path(os.getenv("ERROR_DIR", "/data/error"))
 MAPPING_DIR = Path(os.getenv("MAPPING_DIR", "/data/mapping"))
 WORK_DIR = Path(os.getenv("WORK_DIR", "/data/work"))
 LOG_DIR = Path(os.getenv("LOG_DIR", "/data/logs"))
+OUTPUT_FILENAME_TEMPLATE = os.getenv("OUTPUT_FILENAME_TEMPLATE", "Invoice_{invoice_id}.pdf")
 LOGO_PATH = Path(os.getenv("LOGO_PATH", "/data/assets/logo.png"))
 LOGO_HEIGHT_CM = Decimal(os.getenv("LOGO_HEIGHT_CM", "2.5"))
 LOGO_TOP_CM = Decimal(os.getenv("LOGO_TOP_CM", "0.0"))
 LOGO_MARGIN_CM = Decimal(os.getenv("LOGO_MARGIN_CM", "1.0"))
 FORMAT = os.getenv("FORMAT", "Factur-X-EN16931")
 SHEET_NAME = os.getenv("SHEET_NAME", "Tabelle1")
-POLL_SECONDS = int(os.getenv("POLL_SECONDS", "10"))
+POLL_SECONDS = max(1, int(os.getenv("POLL_SECONDS", "10")))
 STABLE_SECONDS = int(os.getenv("STABLE_SECONDS", "10"))
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "180"))
 
@@ -579,7 +580,7 @@ def render_xlsx_to_pdf(xlsx_path):
     return pdf_path
 
 
-def call_einvoice(spreadsheet_path, mapping_path, invoice_id, pdf_path):
+def call_einvoice(spreadsheet_path, mapping_path, invoice_id, pdf_path, filename_values=None):
     endpoint = f"{API_URL}/api/invoice/create/{FORMAT}"
 
     with spreadsheet_path.open("rb") as spreadsheet, mapping_path.open("rb") as mapping, pdf_path.open("rb") as pdf:
@@ -614,7 +615,7 @@ def call_einvoice(spreadsheet_path, mapping_path, invoice_id, pdf_path):
     if not response.content.startswith(b"%PDF-"):
         raise RuntimeError("E-Invoice-EU lieferte keine PDF-Datei zurück.")
 
-    output_name = f"Invoice_{safe_filename(invoice_id)}.pdf"
+    values={"invoice_id":invoice_id,"order_id":"","delivery_note":"","issue_date":"","buyer_name":""}; values.update(filename_values or {}); output_name=safe_filename(re.sub(r"_+","_",OUTPUT_FILENAME_TEMPLATE.format_map(values)).strip(" ._")); output_name += "" if output_name.lower().endswith(".pdf") else ".pdf"
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     temporary = OUTPUT_DIR / f".{output_name}.tmp"
@@ -697,10 +698,12 @@ def overlay_logo_on_pdf(pdf_path):
     )
 
 
-def archive_original(source_path, invoice_id):
+def archive_original(source_path, invoice_id, pdf_path=None):
     year = datetime.now().strftime("%Y")
-    target_dir = ARCHIVE_DIR / year
+    target_dir = ARCHIVE_DIR / "excel" / year
+    pdf_dir = ARCHIVE_DIR / "pdf" / year
     target_dir.mkdir(parents=True, exist_ok=True)
+    pdf_dir.mkdir(parents=True, exist_ok=True)
 
     target = target_dir / source_path.name
 
@@ -710,6 +713,7 @@ def archive_original(source_path, invoice_id):
         )
 
     shutil.move(str(source_path), str(target))
+    if pdf_path is not None and pdf_path.exists(): shutil.copy2(str(pdf_path), str(pdf_dir / pdf_path.name))
     return target
 
 
@@ -746,8 +750,8 @@ def process(source_path):
 
     rendered_pdf = render_xlsx_to_pdf(normalized_xlsx)
     overlay_logo_on_pdf(rendered_pdf)
-    pdf = call_einvoice(normalized_xlsx, mapping_yaml, data["id"], rendered_pdf)
-    archive = archive_original(source_path, data["id"])
+    pdf = call_einvoice(normalized_xlsx, mapping_yaml, data["id"], rendered_pdf, {"order_id":data["order_id"] or "", "delivery_note":data["delivery_note"] or "", "issue_date":data["issue_date"], "buyer_name":data["buyer_name"]})
+    archive = archive_original(source_path, data["id"], pdf)
 
     logging.info(
         "Erfolgreich verarbeitet: %s | PDF: %s | Archiv: %s",

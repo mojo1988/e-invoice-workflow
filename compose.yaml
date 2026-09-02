@@ -27,5 +27,6 @@ services:
       POLL_SECONDS: "10"
       STABLE_SECONDS: "10"
       REQUEST_TIMEOUT: "180"
+      OUTPUT_FILENAME_TEMPLATE: "invoice_{order_id}_{invoice_id}.pdf"
     volumes:
       - /volume1/docker/e-invoice-workflow/data:/data
