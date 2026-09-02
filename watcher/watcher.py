@@ -167,7 +167,7 @@ def parse_plz_ort(value):
 
     if not match:
         raise ValueError(
-            f"PLZ/Ort aus A6 nicht lesbar: {source!r}. "
+            f"PLZ/Ort aus A11 nicht lesbar: {source!r}. "
             "Erwartet z. B. 'D-90552 Röthenbach' oder '90552 Röthenbach'."
         )
 
@@ -256,35 +256,35 @@ def read_and_normalize(source_path):
     ws_edit = wb_edit[SHEET_NAME]
     ws_values = wb_values[SHEET_NAME]
 
-    invoice_id = text(ws_values["H4"].value)
-    issue_date = date_iso(ws_values["H7"].value)
-    buyer_name = text(ws_values["A3"].value)
-    buyer_street = text(ws_values["A5"].value)
-    buyer_postal, buyer_city = parse_plz_ort(ws_values["A6"].value)
+    invoice_id = text(ws_values["H9"].value)
+    issue_date = date_iso(ws_values["H12"].value)
+    buyer_name = text(ws_values["A8"].value)
+    buyer_street = text(ws_values["A9"].value)
+    buyer_postal, buyer_city = parse_plz_ort(ws_values["A11"].value)
 
     if not invoice_id:
-        raise ValueError("Rechnungsnummer in H4 fehlt.")
+        raise ValueError("Rechnungsnummer in H9 fehlt.")
     if not issue_date:
-        raise ValueError("Rechnungsdatum in H7 fehlt.")
+        raise ValueError("Rechnungsdatum in H12 fehlt.")
     if not buyer_name:
-        raise ValueError("Käuferfirma in A3 fehlt.")
+        raise ValueError("Käuferfirma in A8 fehlt.")
     if not buyer_street:
-        raise ValueError("Käuferstraße in A5 fehlt.")
+        raise ValueError("Käuferstraße in A9 fehlt.")
 
-    order_id = optional(ws_values["A14"].value)
-    delivery_note = optional(ws_values["H9"].value)
+    order_id = optional(ws_values["A19"].value)
+    delivery_note = optional(ws_values["H10"].value)
     period_start = date_iso(ws_values["E16"].value) if ws_values["E16"].value else None
-    period_end = date_iso(ws_values["E18"].value) if ws_values["E18"].value else None
+    period_end = date_iso(ws_values["E19"].value) if ws_values["E19"].value else None
     payment_terms = " ".join(
         item
         for item in (
-            optional(ws_values["C34"].value),
-            optional(ws_values["D34"].value),
+            optional(ws_values["B39"].value),
+            optional(ws_values["C39"].value),
+            optional(ws_values["D39"].value),
         )
         if item
     )
-
-    tax_rate = tax_percent(ws_values["C30"].value)
+    tax_rate = tax_percent(ws_values["C35"].value)
 
     positions = []
     for row in range(24, 33):
@@ -337,7 +337,7 @@ def read_and_normalize(source_path):
         )
 
     if not positions:
-        raise ValueError("Keine Rechnungsposition in Zeile 23 bis 31 gefunden.")
+        raise ValueError("Keine Rechnungsposition in Zeile 24 bis 32 gefunden.")
 
     net_total = money(sum(Decimal(item["total"]) for item in positions))
     tax_total = money(Decimal(net_total) * Decimal(tax_rate) / Decimal("100"))
