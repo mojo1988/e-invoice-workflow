@@ -276,15 +276,15 @@ def read_and_normalize(source_path):
     period_start = date_iso(ws_values["E16"].value) if ws_values["E16"].value else None
     period_end = date_iso(ws_values["E18"].value) if ws_values["E18"].value else None
     payment_terms = " ".join(
-        item for item in (
-            optional(ws_values["B38"].value),
-            optional(ws_values["C38"].value),
-            optional(ws_values["D38"].value),
+        item
+        for item in (
+            optional(ws_values["C34"].value),
+            optional(ws_values["D34"].value),
         )
         if item
     )
 
-    tax_rate = tax_percent(ws_values["C34"].value)
+    tax_rate = tax_percent(ws_values["C30"].value)
 
     positions = []
     for row in range(19, 32):
