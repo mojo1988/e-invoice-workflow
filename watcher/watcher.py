@@ -256,22 +256,22 @@ def read_and_normalize(source_path):
     ws_edit = wb_edit[SHEET_NAME]
     ws_values = wb_values[SHEET_NAME]
 
-    invoice_id = text(ws_values["H8"].value)
-    issue_date = date_iso(ws_values["H11"].value)
-    buyer_name = text(ws_values["A7"].value)
-    buyer_street = text(ws_values["A9"].value)
-    buyer_postal, buyer_city = parse_plz_ort(ws_values["A10"].value)
+    invoice_id = text(ws_values["H4"].value)
+    issue_date = date_iso(ws_values["H7"].value)
+    buyer_name = text(ws_values["A3"].value)
+    buyer_street = text(ws_values["A5"].value)
+    buyer_postal, buyer_city = parse_plz_ort(ws_values["A6"].value)
 
     if not invoice_id:
-        raise ValueError("Rechnungsnummer in H8 fehlt.")
+        raise ValueError("Rechnungsnummer in H4 fehlt.")
     if not issue_date:
-        raise ValueError("Rechnungsdatum in H11 fehlt.")
+        raise ValueError("Rechnungsdatum in H7 fehlt.")
     if not buyer_name:
-        raise ValueError("Käuferfirma in A7 fehlt.")
+        raise ValueError("Käuferfirma in A3 fehlt.")
     if not buyer_street:
-        raise ValueError("Käuferstraße in A9 fehlt.")
+        raise ValueError("Käuferstraße in A5 fehlt.")
 
-    order_id = optional(ws_values["A18"].value)
+    order_id = optional(ws_values["A14"].value)
     delivery_note = optional(ws_values["H9"].value)
     period_start = date_iso(ws_values["E16"].value) if ws_values["E16"].value else None
     period_end = date_iso(ws_values["E18"].value) if ws_values["E18"].value else None
@@ -287,7 +287,7 @@ def read_and_normalize(source_path):
     tax_rate = tax_percent(ws_values["C34"].value)
 
     positions = []
-    for row in range(23, 32):
+    for row in range(19, 32):
         position_number = ws_values.cell(row=row, column=1).value
         position_quantity = ws_values.cell(row=row, column=2).value
         position_unit = ws_values.cell(row=row, column=3).value
