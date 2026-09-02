@@ -287,7 +287,7 @@ def read_and_normalize(source_path):
     tax_rate = tax_percent(ws_values["C30"].value)
 
     positions = []
-    for row in range(19, 32):
+    for row in range(19, 29):
         position_number = ws_values.cell(row=row, column=1).value
         position_quantity = ws_values.cell(row=row, column=2).value
         position_unit = ws_values.cell(row=row, column=3).value
