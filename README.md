@@ -78,3 +78,20 @@ data/
 ```
 
 `vorlage.xlsx` ist die feste Mastervorlage. Für die Verarbeitung wird eine ausgefüllte Kopie mit beliebigem Namen nach `data/input` gelegt. Der Watcher verarbeitet nur `.xlsx`-Dateien direkt unter `input`.
+
+## Dateiname der ausgegebenen PDF
+
+# Syntax
+OUTPUT_FILENAME_TEMPLATE: invoice_{order_id}_{invoice_id}.pdf
+
+# Mögliche Variablen
+{invoice_id} – Rechnungsnummer (aus Excel-Zelle H9)
+
+{order_id} – Bestellnummer (aus Excel-Zelle A19, falls leer, wird der Platzhalter durch nichts ersetzt)
+
+{delivery_note} – Lieferscheinnummer (aus Excel-Zelle H10)
+
+{issue_date} – Rechnungsdatum im ISO-Format YYYY-MM-DD (aus Excel-Zelle H12)
+
+{buyer_name} – Name/Firma des Käufers (aus Excel-Zelle A8)
+
