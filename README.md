@@ -81,10 +81,10 @@ data/
 
 ## Dateiname der ausgegebenen PDF
 
-# Syntax
+### Syntax
 OUTPUT_FILENAME_TEMPLATE: invoice_{order_id}_{invoice_id}.pdf
 
-# Mögliche Variablen
+### Mögliche Variablen
 {invoice_id} – Rechnungsnummer (aus Excel-Zelle H9)
 
 {order_id} – Bestellnummer (aus Excel-Zelle A19, falls leer, wird der Platzhalter durch nichts ersetzt)
