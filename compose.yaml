@@ -1,3 +1,5 @@
+name: e-invoice-workflow
+
 services:
   e-invoice-eu:
     image: gflohr/e-invoice-eu:latest
@@ -5,35 +7,37 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-    ports:
-      - "3000:3000"
+      TZ: Europe/Berlin
+    expose:
+      - "3000"
     networks:
       - invoice-net
 
   watcher:
-    build:
-      context: .
-      dockerfile: watcher/Dockerfile
+    image: moj008/e-invoice-watcher:latest
     container_name: e-invoice-watcher
     restart: unless-stopped
     depends_on:
       - e-invoice-eu
     environment:
-      API_URL: http://e-invoice-eu:3000
-      INPUT_DIR: /data/share/input
-      OUTPUT_DIR: /data/share/output
-      ARCHIVE_DIR: /data/share/archive
-      ERROR_DIR: /data/error
-      MAPPING_DIR: /data/mapping
-      WORK_DIR: /data/work
-      LOG_DIR: /data/logs
-      FORMAT: Factur-X-EN16931
-      SHEET_NAME: Tabelle1
+      TZ: Europe/Berlin
+      API_URL: "http://e-invoice-eu:3000"
+      INPUT_DIR: "/data/input"
+      OUTPUT_DIR: "/data/output"
+      ARCHIVE_DIR: "/data/archive"
+      ERROR_DIR: "/data/error"
+      MAPPING_DIR: "/data/mapping"
+      WORK_DIR: "/data/work"
+      LOG_DIR: "/data/logs"
+      LOGO_PATH: "/data/assets/logo.png"
+      FORMAT: "Factur-X-EN16931"
+      SHEET_NAME: "Tabelle1"
       POLL_SECONDS: "10"
       STABLE_SECONDS: "10"
       REQUEST_TIMEOUT: "180"
     volumes:
-      - /docker/volumes/e-invoice-workflow/data:/data
+    #Passe den Pfand an
+      - /volume1/docker1/volumes/e-invoice-workflow/data:/data
     networks:
       - invoice-net
 
