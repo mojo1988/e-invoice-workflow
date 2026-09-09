@@ -519,10 +519,13 @@ def build_mapping(data, seller, payment, defaults):
             "cbc:ID": text(payment["bic"]),
         }
 
-    if data["order_id"]:
+# Ersetze den bisherigen if-Block für order_id durch diesen:
+    if data.get("order_id"):
         mapping["ubl:Invoice"]["cac:OrderReference"] = {
-            "cbc:ID": data["order_id"],
+            "cbc:ID": text(data["order_id"])
         }
+        # Für Factur-X / ZUGFeRD Kompatibilität zusätzlich als BuyersOrderReferencedDocument setzen:
+        mapping["ubl:Invoice"]["cbc:BuyerReference"] = text(data["order_id"])
 
     if data["delivery_note"]:
         mapping["ubl:Invoice"]["cac:DespatchDocumentReference"] = {
