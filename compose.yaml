@@ -30,6 +30,7 @@ services:
       WORK_DIR: "/data/work"
       LOG_DIR: "/data/logs"
       LOGO_PATH: "/data/assets/logo.png"
+      OUTPUT_FILENAME_TEMPLATE: invoice_{order_id}_{invoice_id}.pdf
       FORMAT: "Factur-X-EN16931"
       SHEET_NAME: "Tabelle1"
       POLL_SECONDS: "10"
