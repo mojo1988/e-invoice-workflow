@@ -1,40 +1,36 @@
 name: e-invoice-workflow
-
-# TrueNAS SCALE: Apps -> Discover Apps -> Install via YAML
-# Passe den Poolnamen im Volume-Pfad an.
-
 services:
   e-invoice-eu:
-    image: gflohr/e-invoice-eu:latest
     container_name: e-invoice-eu
-    restart: unless-stopped
     environment:
       NODE_ENV: production
       TZ: Europe/Berlin
     expose:
-      - "3000"
-
-  watcher:
-    image: moj008/e-invoice-watcher:latest
-    container_name: e-invoice-watcher
+      - '3000'
+    image: gflohr/e-invoice-eu:latest
     restart: unless-stopped
+  watcher:
+    container_name: e-invoice-watcher
     depends_on:
       - e-invoice-eu
     environment:
+      API_URL: http://e-invoice-eu:3000
+      ARCHIVE_DIR: /data/share/archive
+      ERROR_DIR: /data/error
+      FORMAT: Factur-X-EN16931
+      INPUT_DIR: /data/share/input
+      LOGO_PATH: /data/assets/logo.png
+      LOG_DIR: /data/logs
+      MAPPING_DIR: /data/mapping
+      OUTPUT_DIR: /data/share/output
+      OUTPUT_FILENAME_TEMPLATE: invoice_{order_id}_{invoice_id}.pdf
+      POLL_SECONDS: '10'
+      REQUEST_TIMEOUT: '180'
+      SHEET_NAME: Tabelle1
+      STABLE_SECONDS: '10'
       TZ: Europe/Berlin
-      API_URL: "http://e-invoice-eu:3000"
-      INPUT_DIR: "/data/input"
-      OUTPUT_DIR: "/data/output"
-      ARCHIVE_DIR: "/data/archive"
-      ERROR_DIR: "/data/error"
-      MAPPING_DIR: "/data/mapping"
-      WORK_DIR: "/data/work"
-      LOG_DIR: "/data/logs"
-      LOGO_PATH: "/data/assets/logo.png"
-      FORMAT: "Factur-X-EN16931"
-      SHEET_NAME: "Tabelle1"
-      POLL_SECONDS: "10"
-      STABLE_SECONDS: "10"
-      REQUEST_TIMEOUT: "180"
+      WORK_DIR: /data/work
+    image: moj008/e-invoice-watcher:latest
+    restart: unless-stopped
     volumes:
-      - /mnt/tank/appdata/e-invoice-workflow/data:/data
+      - /mnt/Tank/test:/data
